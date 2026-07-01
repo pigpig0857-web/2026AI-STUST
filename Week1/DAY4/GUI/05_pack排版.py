@@ -5,7 +5,7 @@ import tkinter as tk
 
 window = tk.Tk()
 window.title("pack 排版練習")
-window.geometry("400x300")
+window.geometry("600x600")
 
 # 沒寫 side，預設由上往下排
 tk.Label(window, text="我在最上面", bg="lightblue").pack(side="top")
