@@ -9,6 +9,9 @@ __pycache__/
 venv/
 env/
 
+# 環境變數（含密碼，禁止 push）
+.env
+
 # SQLite 資料庫（各人自己跑會產生）
 *.db
 *.sqlite

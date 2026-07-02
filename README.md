@@ -107,6 +107,7 @@ project/
 | 檔案 / 資料夾 | 內容 |
 |---|---|
 | `web_basics/` | **Web 入門**：三層架構 demo 留言板 — HTML/JS 前端 + aiohttp 後端 + SQLite。教 fetch、GET/POST、JSON、SQL 基本語法 |
+| `web_auth/` | **PostgreSQL + 環境變數**：最小會員系統，只有註冊 + 登入兩個 API，`asyncpg` 連線池 + `.env` 讀密碼 |
 | `web_shooter/` | **進階**：把 DAY5 的 pygame 遊戲移植到瀏覽器：`aiohttp` + WebSocket + HTML5 Canvas。所有人只要瀏覽器打開 `http://<host>:8765/` 就能玩，不用裝 pygame |
 
 ---
