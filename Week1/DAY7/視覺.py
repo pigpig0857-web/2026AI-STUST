@@ -2,7 +2,7 @@ import cv2
 
 # 1. 建立 VideoCapture 物件。參數 0 通常代表內建的預設鏡頭。
 # 如果有接外接鏡頭，可以嘗試改為 1, 2 等。
-cap = cv2.VideoCapture(1)
+cap = cv2.VideoCapture(0)
 
 # 檢查鏡頭是否成功開啟
 if not cap.isOpened():
@@ -17,17 +17,16 @@ while True:
     ret, frame = cap.read()
     灰色的圖片 = cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)#彩圖轉灰階
     邊緣檢測 = cv2.Canny(灰色的圖片, 100, 200)
-    img_copy = 灰色的圖片.copy()
+    img_copy = frame.copy()
     #opencv找輪廓的指令
     contours, hierarchy = cv2.findContours(邊緣檢測, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     min_area = 500   # 最小面積限制
     max_area = 50000 # 最大面積限制 
-    
+
     count = 0
     for i, cnt in enumerate(contours):
         # 計算該輪廓的面積
         area = cv2.contourArea(cnt)
-        
         # 判斷面積是否在設定的區間內
         if min_area <= area <= max_area:
             count += 1
