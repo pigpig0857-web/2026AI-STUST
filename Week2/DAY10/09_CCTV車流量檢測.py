@@ -22,12 +22,11 @@ from ultralytics import YOLO
 from PIL import Image, ImageDraw, ImageFont
 
 # ====== 串流來源 ======
-# 台中市 CCTV 範例（若過期換一個新的：https://motoretag.taichung.gov.tw/）
-STREAM_URL = os.getenv(
-    "STREAM_URL",
-    "https://tcnvr4.taichung.gov.tw:7001/media/00-0F-7C-13-DA-83.mpjpeg"
-    "?resolution=240p&auth=cHVibGljdmlld2VyOjYxNmU2NmIxM2RkMjg6YWJiMzZlNzMxNmUzM2M2MjdhMjg5MzY2M2Y4MjhmOGY"
-)
+# 用 get_cctv_url.py 自動從觀看頁抓，永久有效
+from get_cctv_url import 取得CCTV串流URL
+DEVICE_ID  = os.getenv("DEVICE_ID", "C000002")
+STREAM_URL = 取得CCTV串流URL(DEVICE_ID)
+print(f"CCTV device {DEVICE_ID} → {STREAM_URL}")
 
 # ====== YOLO 設定 ======
 MODEL_PATH   = "yolo11n.pt"       # 沒有會自動下載 5.5MB

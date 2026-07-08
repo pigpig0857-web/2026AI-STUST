@@ -8,10 +8,10 @@
 #   2) opencv-python-headless 沒 GUI → cv2.imshow 失敗
 #      改用 Flask MJPEG 串流到瀏覽器就沒事
 #
-# ⚠ URL 會過期！台中 CCTV 的 auth token 大概幾小時就換一次
-#   過期就重新到觀看頁 F12 抓：
-#     https://motoretag.taichung.gov.tw/ATIS_TCC/Device/Showcctv?id=C000002
-#     → F12 → Network → 過濾 mpjpeg → 右鍵 Copy URL → 貼下面
+# URL 用 get_cctv_url.py 自動從觀看頁抓，永久有效不會過期
+#
+# 換成別的攝影機：改下面 DEVICE_ID
+#   C000002 = 某某路口（可自行換編號測試 C000001 / C000003 / ...）
 #
 # 起服務：
 #   python 09_stream_test.py
@@ -22,9 +22,11 @@ import threading
 
 import cv2
 from flask import Flask, Response, render_template_string
+from get_cctv_url import 取得CCTV串流URL
 
-# ====== 改這裡：貼你剛抓的 mpjpeg URL ======
-STREAM_URL = "https://tcnvr4.taichung.gov.tw:7001/media/00-0F-7C-13-DA-83.mpjpeg?resolution=240p&auth=cHVibGljdmlld2VyOjYxNmU2NmIxM2RkMjg6YWJiMzZlNzMxNmUzM2M2MjdhMjg5MzY2M2Y4MjhmOGY"
+DEVICE_ID  = "C000002"
+STREAM_URL = 取得CCTV串流URL(DEVICE_ID)
+print(f"自動取得串流 URL: {STREAM_URL}")
 
 
 # ====== 抓圖執行緒 ======
