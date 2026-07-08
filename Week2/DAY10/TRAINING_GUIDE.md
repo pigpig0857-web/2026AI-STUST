@@ -152,14 +152,36 @@ python Week2\DAY10\04_下載範例dataset.py
 下載完直接跑 05，會被 script 自動偵測到。
 
 ### 情境 B：自己在 Label Studio 標
+
+**兩種子情境**：
+
+#### B-1：老師 or 自己標，LS 跟訓練在同一台機器
 ```powershell
-# LS 匯出 JSON
-# 改 convert_ls_json_to_yolo.py 的三個路徑：
-#   LS_JSON      = 你剛下載的 .json 檔案
-#   LS_MEDIA_DIR = LS 存圖的資料夾
+# LS 匯出 JSON → 改 convert 腳本三個路徑
+#   LS_JSON      = 你下載的 .json 檔案
+#   LS_MEDIA_DIR = LS 存圖的資料夾（Windows 通常在 %LOCALAPPDATA%\label-studio\label-studio\media）
 #   OUTPUT_DIR   = datasets/<你想要的名字>
 python Week2\DAY10\convert_ls_json_to_yolo.py
 ```
+
+#### B-2：學員從**區網**下載 LS 匯出的 JSON（老師的 LS 在另一台）
+LS 的 YOLO 匯出**不含原始圖檔**（只給標籤 + URL），學員自己那台沒有圖。
+**Converter 已經支援 HTTP fallback**：找不到本機檔就從老師的 LS server 下載。
+
+**Step 1**：學員登入 LS UI → 右上頭像 → `Account & Settings` → 找 `Access Token` 複製
+
+**Step 2**：學員在自己電腦 PowerShell：
+```powershell
+$env:LS_SERVER="http://192.168.1.102:8081"   # 老師的 LS server (跟老師確認 IP)
+$env:LS_TOKEN="複製那串很長的 token"
+python Week2\DAY10\convert_ls_json_to_yolo.py
+```
+
+Converter 會逐張透過 HTTP 從老師的 LS 下載圖 + 存到 `datasets/xxx/`。
+- 140 張圖大約 30-60 秒（同 WiFi）
+- 學員不用管圖檔在哪，一氣呵成
+
+**Step 3**：`data.yaml`、`train/val/test` 拆分 converter 都幫你做好，直接開跑 `05`。
 
 ### 情境 C：資料集在雲端（NAS / Google Drive）
 把 `data.yaml` 內的 `path:` 改成絕對路徑，例如：

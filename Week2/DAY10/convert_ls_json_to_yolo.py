@@ -1,16 +1,31 @@
 # 把 Label Studio 匯出的 JSON 轉成 YOLO 訓練格式
-# 用法：改下面 3 個路徑常數，然後 python convert_ls_json_to_yolo.py
+#
+# 兩種讀圖模式：
+#   1) 本機模式：LS 就跑在同一台機器上 → 從 LS_MEDIA_DIR 讀（快）
+#   2) HTTP 模式：學員從區網下載 JSON 但沒有本機圖檔 → 從 LS_SERVER 用 API token 下載
+#
+# converter 會先試本機，找不到就 fallback 到 HTTP。
 
 import json
+import os
 import random
 import shutil
 from pathlib import Path
-from collections import Counter, defaultdict
+from collections import Counter
+import urllib.request
+import urllib.error
 
-# ====== 三個要改的路徑 ======
+# ====== 學員要改的地方 ======
 LS_JSON      = Path(r"C:\Users\TSIC\Downloads\project-1-at-2026-07-08-12-19-054d7225.json")
-LS_MEDIA_DIR = Path(r"C:\Users\TSIC\AppData\Local\label-studio\label-studio\media")   # LS 圖片存放根目錄
-OUTPUT_DIR   = Path(__file__).parent / "datasets" / "fe"                              # 產出到 DAY10/datasets/fe/
+OUTPUT_DIR   = Path(__file__).parent / "datasets" / "fe"
+
+# 本機模式（老師 / 自己標）：把 LS media 資料夾指過去
+LS_MEDIA_DIR = Path(r"C:\Users\TSIC\AppData\Local\label-studio\label-studio\media")
+
+# HTTP 模式（學員從區網 LS 拿資料）：填 server IP + token
+# token 拿法：在 LS 網頁 UI 右上頭像 → Account & Settings → Access Token
+LS_SERVER    = os.getenv("LS_SERVER", "")           # 例如 "http://192.168.1.102:8081"
+LS_TOKEN     = os.getenv("LS_TOKEN",  "")           # 例如 "abc123def456..."
 
 # ====== 拆分比例 ======
 TRAIN_RATIO = 0.80
@@ -49,10 +64,40 @@ def 轉bbox_pct為yolo(x, y, w, h):
     return cx, cy, ww, hh
 
 
-def 找圖檔實體路徑(image_url):
-    """LS 給的 /data/upload/1/xxx.jpg → 真實檔案路徑"""
+def 取得圖片bytes(image_url):
+    """
+    優先本機讀，找不到就從 LS server 下載
+    image_url 例如 '/data/upload/1/xxx.jpg'
+    回傳 (bytes, filename) 或 raise
+    """
     rel = image_url.split("/data/", 1)[-1]     # upload/1/xxx.jpg
-    return LS_MEDIA_DIR / rel
+    local = LS_MEDIA_DIR / rel
+
+    # 1) 本機模式
+    if local.exists():
+        return local.read_bytes(), local.name
+
+    # 2) HTTP fallback
+    if not LS_SERVER:
+        raise FileNotFoundError(
+            f"找不到本機檔案：{local}\n"
+            "沒設 LS_SERVER 環境變數，也沒法從 HTTP 下載。\n"
+            "設定 LS_SERVER=http://<lS 主機 IP>:8081 和 LS_TOKEN=<你的 token> 再跑一次"
+        )
+
+    url = LS_SERVER.rstrip("/") + image_url
+    req = urllib.request.Request(url)
+    if LS_TOKEN:
+        req.add_header("Authorization", f"Token {LS_TOKEN}")
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            data = r.read()
+    except urllib.error.HTTPError as e:
+        raise FileNotFoundError(
+            f"HTTP {e.code} 從 {url} 下載失敗。"
+            + ("Token 可能錯了或過期" if e.code == 401 else "")
+        ) from e
+    return data, Path(rel).name
 
 
 def main():
@@ -72,18 +117,21 @@ def main():
         (OUTPUT_DIR / split / "images").mkdir(parents=True, exist_ok=True)
         (OUTPUT_DIR / split / "labels").mkdir(parents=True, exist_ok=True)
 
-    # ====== 過濾出有標註的 task 且圖檔存在 ======
+    # ====== 過濾出有標註的 task ======
     valid_tasks = []
     for t in tasks:
         anns = [a for a in t.get("annotations", []) if not a.get("was_cancelled")]
         if not anns:
             continue
-        img_path = 找圖檔實體路徑(t["data"]["image"])
-        if not img_path.exists():
-            print(f"  跳過（找不到圖檔）：{img_path}")
+        # 找 image 欄位（LS 匯出時通常叫 "image"，但你資料可能叫別的）
+        data = t.get("data", {})
+        image_url = data.get("image") or next(iter(data.values()), None)
+        if not image_url:
             continue
-        valid_tasks.append((t, anns, img_path))
-    print(f"有標註且圖檔存在的 task: {len(valid_tasks)}")
+        valid_tasks.append((t, anns, image_url))
+    print(f"有標註的 task: {len(valid_tasks)}")
+    print(f"讀圖模式: {'本機' if LS_MEDIA_DIR.exists() else 'HTTP'} "
+          f"({'MEDIA_DIR=' + str(LS_MEDIA_DIR) if LS_MEDIA_DIR.exists() else 'SERVER=' + LS_SERVER})")
 
     # ====== 隨機拆 train / val / test ======
     random.shuffle(valid_tasks)
@@ -100,11 +148,22 @@ def main():
 
     # ====== 產生檔案 ======
     box_counter = Counter()
+    failed = 0
     for split_name, items in splits.items():
-        for t, anns, img_path in items:
-            # 複製圖片
-            dst_img = OUTPUT_DIR / split_name / "images" / img_path.name
-            shutil.copy2(img_path, dst_img)
+        for t, anns, image_url in items:
+            # 取圖 bytes（本機或 HTTP）
+            try:
+                img_bytes, img_name = 取得圖片bytes(image_url)
+            except FileNotFoundError as e:
+                print(f"  ✗ 跳過 {image_url}: {e}")
+                failed += 1
+                continue
+
+            dst_img = OUTPUT_DIR / split_name / "images" / img_name
+            dst_img.write_bytes(img_bytes)
+
+            # 用 img_name 產出對應 label 檔名
+            img_path = Path(img_name)
 
             # 寫 label
             lines = []
