@@ -1,0 +1,10 @@
+# 由 Label Studio JSON 匯入自動產生
+# 產生時間：2026-07-08 12:20:33
+
+path: C:/Users/TSIC/Documents/project/Week2/DAY10/datasets/fe
+train: train/images
+val: valid/images
+test: test/images
+
+nc: 1
+names: ['Fe']

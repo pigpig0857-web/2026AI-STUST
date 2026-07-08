@@ -41,6 +41,9 @@ Week2/DAY9/labels.txt
 *.pt
 Week2/DAY10/datasets/*
 !Week2/DAY10/datasets/.gitkeep
+# fe 資料集要推上去給學員 clone 直接用
+!Week2/DAY10/datasets/fe
+!Week2/DAY10/datasets/fe/**
 Week2/DAY10/runs/
 # Ultralytics 有時把訓練結果放在執行目錄下的 runs/
 /runs/
