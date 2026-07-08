@@ -42,3 +42,5 @@ Week2/DAY9/labels.txt
 Week2/DAY10/datasets/*
 !Week2/DAY10/datasets/.gitkeep
 Week2/DAY10/runs/
+# Ultralytics 有時把訓練結果放在執行目錄下的 runs/
+/runs/

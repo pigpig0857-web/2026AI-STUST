@@ -15,11 +15,17 @@ from PIL import Image, ImageDraw, ImageFont
 BASE = Path(__file__).parent
 
 # ====== 找最新一個 best.pt ======
-runs_dir = BASE / "runs"
-weights_candidates = sorted(runs_dir.rglob("best.pt"), key=lambda p: p.stat().st_mtime, reverse=True)
+# Ultralytics 有時把 runs 放在 <DAY10>/runs/，有時放在 project root（跟 python 執行目錄有關）
+# 兩個位置都掃，取最新的一份
+search_dirs = [BASE / "runs", BASE.parent.parent / "runs"]
+weights_candidates = []
+for d in search_dirs:
+    if d.exists():
+        weights_candidates.extend(d.rglob("best.pt"))
+weights_candidates = sorted(weights_candidates, key=lambda p: p.stat().st_mtime, reverse=True)
 if not weights_candidates:
     raise FileNotFoundError(
-        f"找不到 best.pt。先跑 05_訓練自己的YOLO.py 完成訓練"
+        "找不到 best.pt。先跑 05_訓練自己的YOLO.py 完成訓練"
     )
 MODEL_PATH = weights_candidates[0]
 print(f"載入模型：{MODEL_PATH}")

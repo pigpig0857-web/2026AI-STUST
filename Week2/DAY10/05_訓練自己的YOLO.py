@@ -14,9 +14,9 @@ from ultralytics import YOLO
 BASE = Path(__file__).parent
 
 # ====== 改這裡：指向你剛下載的 dataset ======
-DATA_YAML = BASE / "datasets" / "rps" / "data.yaml"    # 剪刀石頭布 (04 預設)
+DATA_YAML = BASE / "datasets" / "fe" / "data.yaml"      # 你自己在 LS 標的 Fe 資料
+# DATA_YAML = BASE / "datasets" / "rps" / "data.yaml"
 # DATA_YAML = BASE / "datasets" / "aquarium" / "data.yaml"
-# DATA_YAML = BASE / "datasets" / "mask" / "data.yaml"
 
 # ====== 訓練參數 ======
 EPOCHS      = 20          # 訓練回合。小資料集 20-50，複雜的 100+
