@@ -1,6 +1,6 @@
 # CCTV 串流連線測試（純看畫面，不含 YOLO）
 #
-# 用途：驗證你的 STREAM_URL 抓對了、cv2.VideoCapture 讀得到
+# 用途：驗證 STREAM_URL 抓對了、cv2.VideoCapture 讀得到
 # 通了再用 09_CCTV車流量檢測.py 跑 YOLO 完整版
 #
 # ⚠ 兩個常見錯誤（oxxostudio 教學版原碼會踩）：
@@ -8,46 +8,37 @@
 #   2) opencv-python-headless 沒 GUI → cv2.imshow 失敗
 #      改用 Flask MJPEG 串流到瀏覽器就沒事
 #
+# ⚠ URL 會過期！台中 CCTV 的 auth token 大概幾小時就換一次
+#   過期就重新到觀看頁 F12 抓：
+#     https://motoretag.taichung.gov.tw/ATIS_TCC/Device/Showcctv?id=C000002
+#     → F12 → Network → 過濾 mpjpeg → 右鍵 Copy URL → 貼下面
+#
 # 起服務：
-#   $env:STREAM_URL = "https://tcnvr4.taichung.gov.tw:7001/media/xxx.mpjpeg?resolution=240p&auth=xxx"
 #   python 09_stream_test.py
 # 瀏覽器：http://localhost:9093/
 
-import os
 import time
 import threading
 
 import cv2
 from flask import Flask, Response, render_template_string
 
-STREAM_URL = os.getenv("STREAM_URL", "")
+# ====== 改這裡：貼你剛抓的 mpjpeg URL ======
+STREAM_URL = "https://tcnvr4.taichung.gov.tw:7001/media/00-0F-7C-13-DA-83.mpjpeg?resolution=240p&auth=cHVibGljdmlld2VyOjYxNmU2NmIxM2RkMjg6YWJiMzZlNzMxNmUzM2M2MjdhMjg5MzY2M2Y4MjhmOGY"
 
-if not STREAM_URL:
-    print("=" * 60)
-    print("沒設 STREAM_URL 環境變數")
-    print("=" * 60)
-    print("怎麼拿 URL：")
-    print("  1) 瀏覽器打開 https://motoretag.taichung.gov.tw/ATIS_TCC/Device/Showcctv?id=C000002")
-    print("  2) F12 → Network tab → 過濾 mpjpeg")
-    print("  3) 重整頁面，找到那條 request → 右鍵 Copy URL")
-    print("  4) $env:STREAM_URL='貼進來'")
-    print("  5) python 09_stream_test.py")
-    print()
-    print("測試用 fallback：STREAM_URL='0' 用你的 webcam")
-    exit(1)
 
 # ====== 抓圖執行緒 ======
 最新frame = [None]
 執行中 = [True]
 
 def 抓圖迴圈():
-    src = int(STREAM_URL) if STREAM_URL.isdigit() else STREAM_URL
-    print(f"連線來源：{str(src)[:80]}")
-    cap = cv2.VideoCapture(src)
+    print(f"連線來源：{STREAM_URL[:80]}...")
+    cap = cv2.VideoCapture(STREAM_URL)
     if not cap.isOpened():
+        print()
         print("×  cv2.VideoCapture 開不了。可能：")
         print("   - URL 是 HTML 頁不是串流本身")
-        print("   - Token 過期")
+        print("   - Token 過期（重新到觀看頁 F12 抓新的）")
         print("   - 網段不通")
         執行中[0] = False
         return
@@ -60,7 +51,7 @@ def 抓圖迴圈():
             print("frame 讀失敗，重連...")
             cap.release()
             time.sleep(2)
-            cap = cv2.VideoCapture(src)
+            cap = cv2.VideoCapture(STREAM_URL)
             continue
 
         # 標一下 frame 計數 + 時間，證明真的在跑
